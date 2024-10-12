@@ -1,0 +1,129 @@
+class MineSweeper {
+    constructor(rows, cols, mines) {
+        this.rows = rows;
+        this.cols = cols;
+        this.mines = mines;
+        this.board = [];
+        this.renderBoard = document.getElementById('gameBoard');
+        this.timer = document.getElementById('timer');
+        this.initGame();
+    }
+
+    initGame() {
+        this.createBoard();
+        this.placeMines();
+        this.updateBoard();
+        this.startTimer();
+    }
+
+    createBoard() {
+        for (let i = 0; i < this.rows; i++) {
+            let row = [];
+            for (let j = 0; j < this.cols; j++) {
+                let cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.addEventListener('click', (e) => this.cellClicked(e.target));
+                cell.addEventListener('contextmenu', (e) => this.cellRightClicked(e.target));
+                row.push(cell);
+            }
+            this.board.push(row);
+            this.renderBoard.appendChild(document.createElement('div')).appendChild(...row);
+        }
+    }
+
+    placeMines() {
+        let mineCount = this.mines;
+        while (mineCount > 0) {
+            let r = Math.floor(Math.random() * this.rows);
+            let c = Math.floor(Math.random() * this.cols);
+            if (!this.board[r][c].classList.contains('mine')) {
+                this.board[r][c].classList.add('mine');
+                mineCount--;
+            }
+        }
+    }
+
+    updateBoard() {
+        this.board.forEach((row, rIndex) => {
+            row.forEach((cell, cIndex) => {
+                if (cell.classList.contains('mine')) {
+                    cell.textContent = '';
+                } else {
+                    let minesAround = this.countMines(rIndex, cIndex);
+                    cell.textContent = minesAround ? minesAround : '';
+                    if (minesAround === 0) cell.classList.add('number');
+                }
+            });
+        });
+    }
+
+    countMines(row, col) {
+        let count = 0;
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                let r = row + i, c = col + j;
+                if (r >= 0 && r < this.rows && c >= 0 && c < this.cols && this.board[r][c].classList.contains('mine')) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    cellClicked(cell) {
+        if (cell.classList.contains('marked')) return;
+        if (cell.classList.contains('mine')) {
+            alert('Game Over!');
+            this.stopTimer();
+            this.board.forEach(row => row.forEach(cell => {
+                if (cell.classList.contains('mine')) cell.style.backgroundColor = 'red';
+            }));
+        } else {
+            this.revealCell(cell);
+            if (this.checkWin()) alert('Congratulations, you won!');
+        }
+    }
+
+    revealCell(cell) {
+        cell.classList.add('revealed');
+        if (cell.textContent === '') {
+            let row = this.board.indexOf(cell.parentNode);
+            let col = cell.parentNode.children.indexOf(cell);
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    let r = row + i, c = col + j;
+                    if (r >= 0 && r < this.rows && c >= 0 && c < this.cols && !this.board[r][c].classList.contains('revealed')) {
+                        this.revealCell(this.board[r][c]);
+                    }
+                }
+            }
+        }
+    }
+
+    cellRightClicked(cell) {
+        if (cell.classList.contains('mine')) return;
+        cell.classList.toggle('marked');
+    }
+
+    startTimer() {
+        this.timerInterval = setInterval(() => {
+            let time = parseInt(this.timer.textContent);
+            this.timer.textContent = time + 1;
+        }, 1000);
+    }
+
+    stopTimer() {
+        clearInterval(this.timerInterval);
+    }
+
+    checkWin() {
+        let revealedCells = this.board.reduce((acc, row) => acc + row.filter(cell => cell.classList.contains('revealed')).length, 0);
+        return revealedCells === this.rows * this.cols - this.mines;
+    }
+}
+
+document.getElementById('resetButton').addEventListener('click', () => {
+    let game = new MineSweeper(10, 10, 10);
+});
+
+new MineSweeper(10, 10, 10);
